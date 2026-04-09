@@ -1,7 +1,9 @@
 (function () {
-  // Firestore 초기화
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  // Firestore 초기화 (중복 방지)
+  const firebaseApp = firebase.apps.length
+    ? firebase.app()
+    : firebase.initializeApp(firebaseConfig);
+  const db = firebaseApp.firestore();
   const COLLECTION = "runs";
 
   // 로컬 캐시 — onSnapshot 이 실시간으로 갱신
@@ -522,9 +524,8 @@
     }
   });
 
-  // Firestore 실시간 리스너 — 누가 추가/수정/삭제해도 모든 화면이 즉시 갱신
+  // Firestore 실시간 리스너 — orderBy 없이 JS에서 정렬 (인덱스 불필요)
   db.collection(COLLECTION)
-    .orderBy("date", "asc")
     .onSnapshot(
       (snapshot) => {
         runs = snapshot.docs.map((doc) => fromFirestore(doc.id, doc.data()));
@@ -532,6 +533,7 @@
       },
       (err) => {
         console.error("Firestore 연결 오류:", err);
+        render(); // Firebase 실패해도 UI는 동작하도록
       }
     );
 })();
