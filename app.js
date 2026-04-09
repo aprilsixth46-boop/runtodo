@@ -31,6 +31,8 @@
   let currentEmoji = RUN_EMOJIS[0];
   let editingId = null;
   let currentView = "list"; // "list" | "calendar"
+  let sortOrder = "newest"; // "newest" | "oldest"
+  let filterMode = "all"; // "all" | "favorite"
   let calYear = new Date().getFullYear();
   let calMonth = new Date().getMonth(); // 0-based
 
@@ -53,6 +55,8 @@
   const btnCalendarView = document.getElementById("btn-calendar-view");
   const calPrev = document.getElementById("cal-prev");
   const calNext = document.getElementById("cal-next");
+  const btnSortNewest = document.getElementById("btn-sort-newest");
+  const btnSortOldest = document.getElementById("btn-sort-oldest");
 
   const detailModal = document.getElementById("detail-modal");
   const detailBackdrop = document.getElementById("detail-backdrop");
@@ -61,6 +65,7 @@
   const detailBody = document.getElementById("detail-body");
   const detailEditBtn = document.getElementById("detail-edit-btn");
   const detailDeleteBtn = document.getElementById("detail-delete-btn");
+  const detailFavBtn = document.getElementById("detail-fav-btn");
   let detailRunId = null;
 
   function randomEmoji() {
@@ -90,6 +95,9 @@
       date:         data.datetime    || "",
       place:        data.location    || "",
       describetion: data.details     || "",
+      runner:       data.runner      || "",
+      partners:     data.partners    || "",
+      favorite:     data.favorite    || false,
     };
   }
 
@@ -102,6 +110,9 @@
       datetime: data.date         || "",
       location: data.place        || "",
       details:  data.describetion || "",
+      runner:   data.runner       || "",
+      partners: data.partners     || "",
+      favorite: data.favorite     || false,
     };
   }
 
@@ -115,6 +126,12 @@
 
   function deleteRun(id) {
     return db.collection(COLLECTION).doc(id).delete();
+  }
+
+  function toggleFavorite(id) {
+    const run = loadRuns().find((r) => r.id === id);
+    if (!run) return;
+    return db.collection(COLLECTION).doc(id).update({ favorite: !run.favorite });
   }
 
   function todayKey() {
@@ -151,11 +168,12 @@
     }).format(date);
   }
 
-  function sortRuns(runs) {
+  function sortRuns(runs, order) {
+    const dir = (order || sortOrder) === "oldest" ? 1 : -1;
     return [...runs].sort((a, b) => {
       const da = a.datetime || "";
       const db = b.datetime || "";
-      return da.localeCompare(db);
+      return da.localeCompare(db) * dir;
     });
   }
 
@@ -172,7 +190,7 @@
     todayRunsEl.innerHTML = todays
       .map(
         (r) => `
-      <article class="today-card">
+      <article class="today-card" data-id="${escapeAttr(r.id)}" role="button" tabindex="0" style="cursor:pointer;">
         <h3 class="today-card__title"><span class="run-emoji" aria-hidden="true">${escapeHtml(r.emoji || "🏃")}</span>${escapeHtml(r.title)}</h3>
         <p class="today-card__meta"><strong>시간</strong> ${escapeHtml(formatDisplayDateTime(r.datetime))}</p>
         <p class="today-card__meta"><strong>장소</strong> ${escapeHtml(r.location || "")}</p>
@@ -184,24 +202,30 @@
   }
 
   function renderList(runs) {
-    const sorted = sortRuns(runs);
-    if (sorted.length === 0) {
+    let filtered = sortRuns(runs);
+    if (filterMode === "favorite") filtered = filtered.filter((r) => r.favorite);
+    if (filtered.length === 0) {
       scheduleListEl.innerHTML =
-        '<li class="list-empty">등록된 러닝 일정이 없습니다.</li>';
+        filterMode === "favorite"
+          ? '<li class="list-empty">즐겨찾기한 일정이 없습니다.</li>'
+          : '<li class="list-empty">등록된 러닝 일정이 없습니다.</li>';
       return;
     }
 
-    scheduleListEl.innerHTML = sorted
+    scheduleListEl.innerHTML = filtered
       .map(
         (r) => `
       <li class="schedule-item" data-id="${escapeAttr(r.id)}">
         <div class="schedule-item__main">
           <h3 class="schedule-item__title"><span class="run-emoji" aria-hidden="true">${escapeHtml(r.emoji || "🏃")}</span>${escapeHtml(r.title)}</h3>
           <p class="schedule-item__when">${escapeHtml(formatDisplayDateTime(r.datetime))}</p>
+          ${r.runner ? `<p class="schedule-item__meta">🏃 ${escapeHtml(r.runner)}</p>` : ""}
+          ${r.partners ? `<p class="schedule-item__meta">👥 ${escapeHtml(r.partners)}</p>` : ""}
           <p class="schedule-item__location">📍 ${escapeHtml(r.location || "")}</p>
           ${r.details ? `<p class="schedule-item__details">${escapeHtml(r.details)}</p>` : ""}
         </div>
         <div class="schedule-item__actions">
+          <button type="button" class="schedule-item__fav${r.favorite ? " is-fav" : ""}" data-fav="${escapeAttr(r.id)}" aria-label="${r.favorite ? "즐겨찾기 해제" : "즐겨찾기"}">${r.favorite ? "♥" : "♡"}</button>
           <button type="button" class="schedule-item__edit" data-edit="${escapeAttr(r.id)}">수정</button>
           <button type="button" class="schedule-item__delete" data-delete="${escapeAttr(r.id)}">삭제</button>
         </div>
@@ -244,6 +268,25 @@
 
   btnListView.addEventListener("click", () => switchView("list"));
   btnCalendarView.addEventListener("click", () => switchView("calendar"));
+
+  const btnFilterFav = document.getElementById("btn-filter-fav");
+
+  function setFilter(mode) {
+    sortOrder = mode === "newest" || mode === "oldest" ? mode : sortOrder;
+    filterMode = mode === "favorite" ? "favorite" : "all";
+
+    btnSortNewest.classList.toggle("is-active", mode === "newest");
+    btnSortOldest.classList.toggle("is-active", mode === "oldest");
+    btnFilterFav.classList.toggle("is-active", mode === "favorite");
+    btnFilterFav.textContent = mode === "favorite" ? "♥ Favorite" : "♡ Favorite";
+
+    renderList(loadRuns());
+  }
+
+  btnSortNewest.addEventListener("click", () => setFilter("newest"));
+  btnSortOldest.addEventListener("click", () => setFilter("oldest"));
+  btnFilterFav.addEventListener("click", () => setFilter("favorite"));
+
   calPrev.addEventListener("click", () => {
     calMonth -= 1;
     if (calMonth < 0) { calMonth = 11; calYear -= 1; }
@@ -377,6 +420,8 @@
     form.querySelector("[name=title]").value = run.title || "";
     const datetimeInput = document.getElementById("input-datetime");
     if (datetimeInput) datetimeInput.value = run.datetime || todayDefaultDatetime();
+    form.querySelector("[name=runner]").value = run.runner || "";
+    form.querySelector("[name=partners]").value = run.partners || "";
     form.querySelector("[name=location]").value = run.location || "";
     form.querySelector("[name=details]").value = run.details || "";
 
@@ -404,11 +449,17 @@
       <dl class="detail-dl">
         <dt>날짜 및 시간</dt>
         <dd>${run.datetime ? escapeHtml(formatDisplayDateTime(run.datetime)) : "—"}</dd>
+        ${run.runner ? `<dt>러너</dt><dd>${escapeHtml(run.runner)}</dd>` : ""}
+        ${run.partners ? `<dt>함께 달리는 사람들</dt><dd>${escapeHtml(run.partners)}</dd>` : ""}
         <dt>장소</dt>
         <dd>${run.location ? escapeHtml(run.location) : "—"}</dd>
         ${run.details ? `<dt>상세 내용</dt><dd class="detail-dl__pre">${escapeHtml(run.details)}</dd>` : ""}
       </dl>
     `;
+
+    detailFavBtn.textContent = run.favorite ? "♥" : "♡";
+    detailFavBtn.classList.toggle("is-fav", !!run.favorite);
+    detailFavBtn.setAttribute("aria-label", run.favorite ? "즐겨찾기 해제" : "즐겨찾기");
 
     detailModal.hidden = false;
     detailBackdrop.hidden = false;
@@ -443,6 +494,16 @@
     if (!detailRunId) return;
     deleteRun(detailRunId);
     closeDetailModal();
+  });
+
+  detailFavBtn.addEventListener("click", () => {
+    if (!detailRunId) return;
+    toggleFavorite(detailRunId);
+    // 버튼 즉시 토글 (Firestore onSnapshot 이 업데이트하기 전 즉각 반응)
+    const nowFav = detailFavBtn.textContent.trim() === "♥";
+    detailFavBtn.textContent = nowFav ? "♡" : "♥";
+    detailFavBtn.classList.toggle("is-fav", !nowFav);
+    detailFavBtn.setAttribute("aria-label", nowFav ? "즐겨찾기" : "즐겨찾기 해제");
   });
 
   function openModalForDate(dateStr) {
@@ -480,6 +541,18 @@
     }
   });
 
+  todayRunsEl.addEventListener("click", (e) => {
+    const card = e.target.closest("[data-id]");
+    if (card) openDetailModal(card.getAttribute("data-id"));
+  });
+
+  todayRunsEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      const card = e.target.closest("[data-id]");
+      if (card) { e.preventDefault(); openDetailModal(card.getAttribute("data-id")); }
+    }
+  });
+
   openModalBtn.addEventListener("click", openModal);
   closeModalBtn.addEventListener("click", closeModal);
   cancelBtn.addEventListener("click", closeModal);
@@ -497,21 +570,28 @@
     const fd = new FormData(form);
     const title = String(fd.get("title") || "").trim();
     const datetime = String(fd.get("datetime") || "").trim();
+    const runner = String(fd.get("runner") || "").trim();
+    const partners = String(fd.get("partners") || "").trim();
     const location = String(fd.get("location") || "").trim();
     const details = String(fd.get("details") || "").trim();
 
     if (!title) return;
 
     if (editingId) {
-      updateRun(editingId, { emoji: currentEmoji, title, datetime, location, details });
+      updateRun(editingId, { emoji: currentEmoji, title, datetime, runner, partners, location, details });
     } else {
-      addRun({ emoji: currentEmoji, title, datetime, location, details });
+      addRun({ emoji: currentEmoji, title, datetime, runner, partners, location, details });
     }
     editingId = null;
     closeModal();
   });
 
   scheduleListEl.addEventListener("click", (e) => {
+    const favBtn = e.target.closest("[data-fav]");
+    if (favBtn) {
+      toggleFavorite(favBtn.getAttribute("data-fav"));
+      return;
+    }
     const editBtn = e.target.closest("[data-edit]");
     if (editBtn) {
       openEditModal(editBtn.getAttribute("data-edit"));
