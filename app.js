@@ -1,5 +1,5 @@
 (function () {
-  const STORAGE_KEY = "runningSchedules";
+  let runs = [];
 
   const RUN_EMOJIS = [
     // 러너
@@ -71,18 +71,11 @@
   emojiBtn.addEventListener("click", nextEmoji);
 
   function loadRuns() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return runs;
   }
 
-  function saveRuns(runs) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(runs));
+  function saveRuns(updated) {
+    runs = updated;
   }
 
   function todayKey() {
