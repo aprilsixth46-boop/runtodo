@@ -1,4 +1,10 @@
 (function () {
+  // Firestore 초기화
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const COLLECTION = "runs";
+
+  // 로컬 캐시 — onSnapshot 이 실시간으로 갱신
   let runs = [];
 
   const RUN_EMOJIS = [
@@ -74,8 +80,39 @@
     return runs;
   }
 
-  function saveRuns(updated) {
-    runs = updated;
+  // 앱 내부 필드명 → Firestore 필드명으로 변환
+  function toFirestore(data) {
+    return {
+      emoji:        data.emoji       || "",
+      title:        data.title       || "",
+      date:         data.datetime    || "",
+      place:        data.location    || "",
+      describetion: data.details     || "",
+    };
+  }
+
+  // Firestore 필드명 → 앱 내부 필드명으로 변환
+  function fromFirestore(id, data) {
+    return {
+      id,
+      emoji:    data.emoji        || "",
+      title:    data.title        || "",
+      datetime: data.date         || "",
+      location: data.place        || "",
+      details:  data.describetion || "",
+    };
+  }
+
+  function addRun(data) {
+    return db.collection(COLLECTION).add(toFirestore(data));
+  }
+
+  function updateRun(id, data) {
+    return db.collection(COLLECTION).doc(id).update(toFirestore(data));
+  }
+
+  function deleteRun(id) {
+    return db.collection(COLLECTION).doc(id).delete();
   }
 
   function todayKey() {
@@ -402,9 +439,7 @@
 
   detailDeleteBtn.addEventListener("click", () => {
     if (!detailRunId) return;
-    const runs = loadRuns().filter((r) => r.id !== detailRunId);
-    saveRuns(runs);
-    render();
+    deleteRun(detailRunId);
     closeDetailModal();
   });
 
@@ -465,25 +500,12 @@
 
     if (!title) return;
 
-    const runs = loadRuns();
     if (editingId) {
-      const idx = runs.findIndex((r) => r.id === editingId);
-      if (idx !== -1) {
-        runs[idx] = { ...runs[idx], emoji: currentEmoji, title, datetime, location, details };
-      }
+      updateRun(editingId, { emoji: currentEmoji, title, datetime, location, details });
     } else {
-      runs.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        emoji: currentEmoji,
-        title,
-        datetime,
-        location,
-        details,
-      });
+      addRun({ emoji: currentEmoji, title, datetime, location, details });
     }
     editingId = null;
-    saveRuns(runs);
-    render();
     closeModal();
   });
 
@@ -496,12 +518,20 @@
     const deleteBtn = e.target.closest("[data-delete]");
     if (deleteBtn) {
       const id = deleteBtn.getAttribute("data-delete");
-      if (!id) return;
-      const runs = loadRuns().filter((r) => r.id !== id);
-      saveRuns(runs);
-      render();
+      if (id) deleteRun(id);
     }
   });
 
-  render();
+  // Firestore 실시간 리스너 — 누가 추가/수정/삭제해도 모든 화면이 즉시 갱신
+  db.collection(COLLECTION)
+    .orderBy("date", "asc")
+    .onSnapshot(
+      (snapshot) => {
+        runs = snapshot.docs.map((doc) => fromFirestore(doc.id, doc.data()));
+        render();
+      },
+      (err) => {
+        console.error("Firestore 연결 오류:", err);
+      }
+    );
 })();
