@@ -76,6 +76,7 @@
   const detailEditBtn = document.getElementById("detail-edit-btn");
   const detailDeleteBtn = document.getElementById("detail-delete-btn");
   const detailFavBtn = document.getElementById("detail-fav-btn");
+  const detailShareBtn = document.getElementById("detail-share-btn");
   let detailRunId = null;
 
   function randomEmoji() {
@@ -174,6 +175,30 @@
     return db.collection(COLLECTION).doc(id).delete();
   }
 
+  function shareRun(id) {
+    const run = loadRuns().find((r) => r.id === id);
+    if (!run) return;
+    const lines = [
+      `${run.emoji || "🏃"} ${run.title}`,
+      run.datetime ? `🕐 ${formatDisplayDateTime(run.datetime)}` : "",
+      run.runner ? `러너: ${run.runner}` : "",
+      run.partners ? `함께: ${run.partners}` : "",
+      run.location ? `📍 ${run.location}` : "",
+      run.details ? `\n${run.details}` : "",
+    ].filter(Boolean).join("\n");
+
+    const appUrl = "https://runtodo-88140.web.app";
+    if (navigator.share) {
+      navigator.share({ title: run.title, text: lines, url: appUrl }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(lines).then(() => {
+        alert("클립보드에 복사됐어요!");
+      }).catch(() => {
+        alert(lines);
+      });
+    }
+  }
+
   function toggleFavorite(id) {
     const run = loadRuns().find((r) => r.id === id);
     if (!run) return;
@@ -243,7 +268,10 @@
       .map(
         (r) => `
       <article class="today-card" data-id="${escapeAttr(r.id)}" role="button" tabindex="0" style="cursor:pointer;">
-        <h3 class="today-card__title"><span class="run-emoji" aria-hidden="true">${escapeHtml(r.emoji || "🏃")}</span>${escapeHtml(r.title)}</h3>
+        <div class="today-card__header">
+          <h3 class="today-card__title"><span class="run-emoji" aria-hidden="true">${escapeHtml(r.emoji || "🏃")}</span>${escapeHtml(r.title)}</h3>
+          <button type="button" class="share-btn" data-share="${escapeAttr(r.id)}" aria-label="공유">↗</button>
+        </div>
         <p class="today-card__meta"><strong>시간</strong> ${escapeHtml(formatDisplayDateTime(r.datetime))}</p>
         ${r.runner ? `<p class="today-card__meta"><strong>러너</strong> ${escapeHtml(r.runner)}</p>` : ""}
         ${r.partners ? `<p class="today-card__meta"><strong>함께</strong> ${escapeHtml(r.partners)}</p>` : ""}
@@ -291,6 +319,7 @@
         </div>
         <div class="schedule-item__actions">
           <button type="button" class="schedule-item__fav${r.favorite ? " is-fav" : ""}" data-fav="${escapeAttr(r.id)}" aria-label="${r.favorite ? "즐겨찾기 해제" : "즐겨찾기"}">${r.favorite ? "♥" : "♡"}</button>
+          <button type="button" class="schedule-item__share" data-share="${escapeAttr(r.id)}" aria-label="공유">↗</button>
           <button type="button" class="schedule-item__edit" data-edit="${escapeAttr(r.id)}">수정</button>
           <button type="button" class="schedule-item__delete" data-delete="${escapeAttr(r.id)}">삭제</button>
         </div>
@@ -559,6 +588,10 @@
     closeDetailModal();
   });
 
+  detailShareBtn.addEventListener("click", () => {
+    if (detailRunId) shareRun(detailRunId);
+  });
+
   detailFavBtn.addEventListener("click", () => {
     if (!detailRunId) return;
     toggleFavorite(detailRunId);
@@ -605,6 +638,8 @@
   });
 
   todayRunsEl.addEventListener("click", (e) => {
+    const shareBtn = e.target.closest("[data-share]");
+    if (shareBtn) { e.stopPropagation(); shareRun(shareBtn.getAttribute("data-share")); return; }
     const card = e.target.closest("[data-id]");
     if (card) openDetailModal(card.getAttribute("data-id"));
   });
@@ -651,6 +686,8 @@
   });
 
   scheduleListEl.addEventListener("click", (e) => {
+    const shareBtn = e.target.closest("[data-share]");
+    if (shareBtn) { shareRun(shareBtn.getAttribute("data-share")); return; }
     const favBtn = e.target.closest("[data-fav]");
     if (favBtn) {
       toggleFavorite(favBtn.getAttribute("data-fav"));
@@ -671,6 +708,12 @@
   db.collection(COLLECTION).onSnapshot(
     (snapshot) => {
       runs = snapshot.docs.map((doc) => fromFirestore(doc.id, doc.data()));
+      // 지난 일정은 즐겨찾기 자동 해제
+      runs.forEach((r) => {
+        if (r.favorite && isPast(r.datetime)) {
+          db.collection(COLLECTION).doc(r.id).update({ favorite: false });
+        }
+      });
       render();
     },
     (err) => {

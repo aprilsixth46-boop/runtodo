@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RUN TO DO</title>
+  <meta name="description" content="함께 달리는 러닝 일정 앱 — RUN TO DO" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="RUN TO DO" />
+  <meta property="og:description" content="함께 달리는 러닝 일정을 확인해보세요!" />
+  <meta property="og:image" content="https://runtodo-88140.web.app/profile.png" />
+  <meta property="og:url" content="https://runtodo-88140.web.app" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -69,6 +76,7 @@
       <div class="modal-footer detail-modal__footer">
         <button type="button" class="btn btn-ghost" id="detail-delete-btn">삭제</button>
         <button type="button" class="btn btn-fav" id="detail-fav-btn" aria-label="즐겨찾기">♡</button>
+        <button type="button" class="btn btn-share" id="detail-share-btn" aria-label="공유">↗</button>
         <button type="button" class="btn btn-primary" id="detail-edit-btn">수정</button>
       </div>
     </div>
@@ -107,7 +115,7 @@
         </label>
         <label class="field">
           <span class="field-label">상세 내용</span>
-          <textarea name="details" rows="4" placeholder="거리, 페이스, 준비물 등"></textarea>
+          <textarea name="details" rows="4" placeholder="ex. 거리, 페이스, 준비물 등"></textarea>
         </label>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost" id="cancel-btn">취소</button>
