@@ -130,6 +130,47 @@
     closeEmojiPicker();
   });
 
+  // ── Runner select ──
+  const runnerBtns = document.querySelectorAll(".runner-select__btn");
+  const runnerInput = document.getElementById("runner-input");
+
+  runnerBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      runnerBtns.forEach((b) => b.classList.remove("is-selected"));
+      btn.classList.add("is-selected");
+      if (btn.dataset.runner === "기타") {
+        runnerInput.style.display = "block";
+        runnerInput.value = "";
+        runnerInput.focus();
+      } else {
+        runnerInput.style.display = "none";
+        runnerInput.value = btn.dataset.runner;
+      }
+    });
+  });
+
+  function resetRunnerSelect() {
+    runnerBtns.forEach((b) => b.classList.remove("is-selected"));
+    runnerInput.style.display = "none";
+    runnerInput.value = "";
+  }
+
+  function setRunnerSelect(value) {
+    resetRunnerSelect();
+    if (!value) return;
+    const preset = [...runnerBtns].find((b) => b.dataset.runner === value);
+    if (preset) {
+      preset.classList.add("is-selected");
+      runnerInput.style.display = "none";
+      runnerInput.value = value;
+    } else {
+      const etcBtn = [...runnerBtns].find((b) => b.dataset.runner === "기타");
+      if (etcBtn) etcBtn.classList.add("is-selected");
+      runnerInput.style.display = "block";
+      runnerInput.value = value;
+    }
+  }
+
   function loadRuns() {
     return runs;
   }
@@ -307,8 +348,9 @@
     scheduleListEl.innerHTML = filtered
       .map((r) => {
         const past = isPast(r.datetime);
+        const runnerClass = r.runner === "애플" ? " runner--apple" : (r.runner && r.runner !== "리지" ? " runner--other" : "");
         return `
-      <li class="schedule-item${past ? " is-past" : ""}" data-id="${escapeAttr(r.id)}">
+      <li class="schedule-item${past ? " is-past" : ""}${runnerClass}" data-id="${escapeAttr(r.id)}">
         <div class="schedule-item__main">
           <h3 class="schedule-item__title"><span class="run-emoji" aria-hidden="true">${escapeHtml(r.emoji || "🏃")}</span>${escapeHtml(r.title)}</h3>
           <p class="schedule-item__when">${escapeHtml(formatDisplayDateTime(r.datetime))}</p>
@@ -441,7 +483,10 @@
 
       const runsOnDay = byDate[key] || [];
       const runItems = runsOnDay
-        .map((r) => `<span class="cal-run-chip${key < today ? " cal-run-chip--past" : ""}" data-run-id="${escapeAttr(r.id)}" role="button" tabindex="0">${escapeHtml(r.emoji || "🏃")} ${escapeHtml(r.title)}</span>`)
+        .map((r) => {
+          const chipRunner = r.runner === "애플" ? " cal-run-chip--apple" : (r.runner && r.runner !== "리지" ? " cal-run-chip--other" : "");
+          return `<span class="cal-run-chip${key < today ? " cal-run-chip--past" : ""}${chipRunner}" data-run-id="${escapeAttr(r.id)}" role="button" tabindex="0">${escapeHtml(r.emoji || "🏃")} ${escapeHtml(r.title)}</span>`;
+        })
         .join("");
 
       html += `<div class="${cls}" data-cal-date="${key}" role="button" tabindex="0"><span class="cal-cell__num">${d}</span>${runItems}</div>`;
@@ -495,6 +540,7 @@
     emojiBtn.textContent = currentEmoji;
     const datetimeInput = document.getElementById("input-datetime");
     if (datetimeInput) datetimeInput.value = todayDefaultDatetime();
+    resetRunnerSelect();
     showModal();
   }
 
@@ -512,7 +558,7 @@
     form.querySelector("[name=title]").value = run.title || "";
     const datetimeInput = document.getElementById("input-datetime");
     if (datetimeInput) datetimeInput.value = run.datetime || todayDefaultDatetime();
-    form.querySelector("[name=runner]").value = run.runner || "";
+    setRunnerSelect(run.runner || "");
     form.querySelector("[name=partners]").value = run.partners || "";
     form.querySelector("[name=location]").value = run.location || "";
     form.querySelector("[name=details]").value = run.details || "";

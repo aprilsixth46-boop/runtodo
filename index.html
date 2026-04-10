@@ -101,10 +101,15 @@
           <span class="field-label">날짜 및 시간</span>
           <input type="datetime-local" name="datetime" id="input-datetime" />
         </label>
-        <label class="field">
+        <div class="field">
           <span class="field-label">러너</span>
-          <input type="text" name="runner" placeholder="ex. 리지" autocomplete="off" />
-        </label>
+          <div class="runner-select" role="group" aria-label="러너 선택">
+            <button type="button" class="runner-select__btn" data-runner="리지">리지</button>
+            <button type="button" class="runner-select__btn" data-runner="애플">애플</button>
+            <button type="button" class="runner-select__btn" data-runner="기타">기타</button>
+          </div>
+          <input type="text" name="runner" id="runner-input" placeholder="ex. 이름 입력" autocomplete="off" style="display:none; margin-top:0.5rem;" />
+        </div>
         <label class="field">
           <span class="field-label">함께 달리는 사람들</span>
           <input type="text" name="partners" placeholder="ex. 슬기, 현아" autocomplete="off" />
