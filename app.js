@@ -43,7 +43,7 @@
   let currentEmoji = RUN_EMOJIS[0];
   let editingId = null;
   let currentView = "list"; // "list" | "calendar"
-  let filterMode = "upcoming"; // "upcoming" | "favorite" | "past"
+  let filterMode = "upcoming"; // "upcoming" | "ridge" | "apple" | "favorite" | "past"
   let calYear = new Date().getFullYear();
   let calMonth = new Date().getMonth(); // 0-based
 
@@ -295,6 +295,19 @@
     });
   }
 
+  /** 리지/애플 필터: 예정·오늘은 위에서 가까운 순, 지난 날짜는 맨 아래(최근 과거부터) */
+  function sortRunnerFilterRuns(arr) {
+    const notPast = sortRuns(
+      arr.filter((r) => !isPast(r.datetime)),
+      1
+    );
+    const pastBlock = sortRuns(
+      arr.filter((r) => isPast(r.datetime)),
+      -1
+    );
+    return [...notPast, ...pastBlock];
+  }
+
   function renderToday(runs) {
     const key = todayKey();
     const todays = sortRuns(runs.filter((r) => datePart(r.datetime) === key));
@@ -328,6 +341,8 @@
     let filtered;
     const emptyMsg = {
       upcoming: '<li class="list-empty">다가오는 러닝 일정이 없습니다.</li>',
+      ridge:    '<li class="list-empty">리지 러너 일정이 없습니다.</li>',
+      apple:    '<li class="list-empty">애플 러너 일정이 없습니다.</li>',
       favorite: '<li class="list-empty">즐겨찾기한 일정이 없습니다.</li>',
       past:     '<li class="list-empty">지난 러닝 일정이 없습니다.</li>',
     };
@@ -336,12 +351,25 @@
       filtered = sortRuns(runs.filter((r) => datePart(r.datetime) > todayKey()), 1); // 오늘 제외, 오름차순
     } else if (filterMode === "past") {
       filtered = sortRuns(runs.filter((r) => isPast(r.datetime)), -1); // 내림차순(최근과거부터)
-    } else {
+    } else if (filterMode === "favorite") {
       filtered = sortRuns(runs.filter((r) => r.favorite), 1);
+    } else if (filterMode === "ridge") {
+      filtered = sortRunnerFilterRuns(
+        runs.filter((r) => {
+          const name = (r.runner || "").trim();
+          return !name || name === "리지";
+        })
+      );
+    } else if (filterMode === "apple") {
+      filtered = sortRunnerFilterRuns(
+        runs.filter((r) => (r.runner || "").trim() === "애플")
+      );
+    } else {
+      filtered = sortRuns(runs.filter((r) => datePart(r.datetime) > todayKey()), 1);
     }
 
     if (filtered.length === 0) {
-      scheduleListEl.innerHTML = emptyMsg[filterMode];
+      scheduleListEl.innerHTML = emptyMsg[filterMode] || emptyMsg.upcoming;
       return;
     }
 
@@ -404,12 +432,16 @@
   btnListView.addEventListener("click", () => switchView("list"));
   btnCalendarView.addEventListener("click", () => switchView("calendar"));
 
+  const btnFilterRidge = document.getElementById("btn-filter-ridge");
+  const btnFilterApple = document.getElementById("btn-filter-apple");
   const btnFilterFav = document.getElementById("btn-filter-fav");
   const btnFilterPast = document.getElementById("btn-filter-past");
 
   function setFilter(mode) {
     filterMode = mode;
     btnFilterUpcoming.classList.toggle("is-active", mode === "upcoming");
+    btnFilterRidge.classList.toggle("is-active", mode === "ridge");
+    btnFilterApple.classList.toggle("is-active", mode === "apple");
     btnFilterFav.classList.toggle("is-active", mode === "favorite");
     btnFilterFav.textContent = mode === "favorite" ? "♥ Favorite" : "♡ Favorite";
     btnFilterPast.classList.toggle("is-active", mode === "past");
@@ -417,6 +449,8 @@
   }
 
   btnFilterUpcoming.addEventListener("click", () => setFilter("upcoming"));
+  btnFilterRidge.addEventListener("click", () => setFilter("ridge"));
+  btnFilterApple.addEventListener("click", () => setFilter("apple"));
   btnFilterFav.addEventListener("click", () => setFilter("favorite"));
   btnFilterPast.addEventListener("click", () => setFilter("past"));
 

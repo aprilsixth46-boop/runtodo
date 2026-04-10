@@ -373,6 +373,7 @@ body {
 
 .list-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 0.75rem;
 }
@@ -601,10 +602,11 @@ body {
 }
 
 .modal-footer.detail-modal__footer {
-  display: grid;
-  grid-template-columns: 1fr auto auto 1fr;
-  gap: 0.35rem;
-  justify-content: unset;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   border-top: 1px solid var(--border);
   padding: 0.65rem 1rem 0.85rem;
   margin-top: 0.5rem;
@@ -620,7 +622,6 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   transition: color 0.15s, border-color 0.15s, transform 0.15s;
-  align-self: stretch;
 }
 
 .btn-fav:hover {
@@ -644,7 +645,6 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   transition: color 0.15s, border-color 0.15s;
-  align-self: stretch;
 }
 
 .btn-share:hover {
@@ -653,7 +653,26 @@ body {
 }
 
 .detail-modal__footer .btn {
-  width: 100%;
+  width: auto;
+  min-width: 5rem;
+  flex: 0 0 auto;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  min-height: 2.35rem;
+  box-sizing: border-box;
+}
+
+.detail-modal__footer .btn-fav {
+  font-size: 1.2rem;
+}
+
+.detail-modal__footer .btn-share {
+  font-size: 0.95rem;
+}
+
+.detail-modal__footer .btn-primary {
+  box-shadow: 0 2px 12px var(--accent-glow);
 }
 
 .detail-modal__footer .btn-ghost {
@@ -738,9 +757,8 @@ body.modal-open {
   border-color: var(--accent);
 }
 
-/* 애플 러너 — 톤다운 핑크 */
+/* 애플/기타 러너 — 리스트 본문 글씨는 캘린더 칩(.cal-run-chip)과 동일 색 */
 :root {
-  --apple-color: #e2c4cc;
   --other-color: #b5d3e2;
 }
 
@@ -758,7 +776,7 @@ body.modal-open {
 .schedule-item.runner--apple .schedule-item__meta,
 .schedule-item.runner--apple .schedule-item__location,
 .schedule-item.runner--apple .schedule-item__details {
-  color: var(--apple-color);
+  color: #b8899a;
 }
 
 .schedule-item.runner--apple .schedule-item__details {
@@ -785,7 +803,7 @@ body.modal-open {
 .schedule-item.runner--other .schedule-item__meta,
 .schedule-item.runner--other .schedule-item__location,
 .schedule-item.runner--other .schedule-item__details {
-  color: var(--other-color);
+  color: #7aaabf;
 }
 
 .schedule-item.runner--other .schedule-item__details {
