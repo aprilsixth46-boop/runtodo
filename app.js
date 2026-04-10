@@ -187,7 +187,7 @@
       run.details ? `\n${run.details}` : "",
     ].filter(Boolean).join("\n");
 
-    const appUrl = "https://runtodo-88140.web.app";
+    const appUrl = "https://aprilsixth46-boop.github.io/runtodo/";
     if (navigator.share) {
       navigator.share({ title: run.title, text: lines, url: appUrl }).catch(() => {});
     } else {
