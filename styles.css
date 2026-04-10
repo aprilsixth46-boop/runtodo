@@ -373,12 +373,35 @@ body {
 
 .list-filter {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
   margin-bottom: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding-bottom: 0.25rem;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+
+.list-filter::-webkit-scrollbar {
+  height: 5px;
+}
+
+.list-filter::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list-filter::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
 }
 
 .list-filter__btn {
+  flex: 0 0 auto;
   padding: 0.3rem 0.9rem;
   font-family: inherit;
   font-size: 0.8rem;
