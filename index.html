@@ -117,7 +117,19 @@
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <!-- Emoji picker modal -->
+  <div class="modal-backdrop" id="emoji-picker-backdrop" hidden></div>
+  <div class="modal emoji-picker-modal" id="emoji-picker-modal" role="dialog" aria-modal="true" aria-label="이모지 선택" hidden>
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2 class="emoji-picker-modal__title">이모지 선택</h2>
+        <button type="button" class="btn-icon-only" id="emoji-picker-close" aria-label="닫기">×</button>
+      </div>
+      <div class="emoji-picker__grid" id="emoji-picker-grid"></div>
+    </div>
+  </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>

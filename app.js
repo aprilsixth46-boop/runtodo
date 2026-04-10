@@ -10,22 +10,34 @@
   let runs = [];
 
   const RUN_EMOJIS = [
-    // 러너
-    "🏃","🏃‍♀️","🏃‍♂️","🧍","🚶‍♀️","🚶‍♂️","🧗","🚴","🚴‍♀️","🤸",
-    // 날씨
+    // 러너·사람
+    "🏃","🏃‍♀️","🏃‍♂️","🚶","🚶‍♀️","🚶‍♂️","🧗","🚴","🚴‍♀️","🤸",
+    "🤸‍♀️","🧍","🧎","🧎‍♀️","🏋️","🏋️‍♀️","🤼","🤾","🤾‍♀️","🧜‍♀️",
+    // 날씨·시간
     "🌅","🌄","🌇","🌆","🌃","🌁","⛅","🌤️","🌥️","🌦️",
     "🌧️","⛈️","🌩️","🌨️","☀️","🌙","🌛","🌚","☔","❄️",
+    "🌬️","🌫️","🌪️","🌝","🌞","🌜","⛄","🌂","☁️","🔆",
     // 자연·장소
     "🌿","🌲","🌳","🌾","🌊","🏞️","🏔️","⛰️","🗻","🏙️",
     "🌸","🍃","🍂","🍁","🌻","🌼","🌺","🌈","🦋","🐦",
+    "🦅","🐾","🌵","🏕️","🏖️","🏝️","🗺️","🌏","🌍","🍀",
+    "🌱","🌴","🪨","🪵","🦜","🦢","🌋","🏜️","🌉","🌠",
     // 장비·복장
     "👟","🧢","🧤","🧦","🩳","🩺","🎽","🥾","👒","🕶️",
+    "🧣","🧥","👕","🩱","🧴","🩹","💊","🔦","🎒","🧳",
     // 파워·감정
     "💪","🔥","⚡","❤️‍🔥","🫀","💧","🫧","🥵","😤","😎",
+    "🤩","😁","😆","🥳","🤗","😮‍💨","🫶","🙌","👊","✊",
+    "🤛","🤝","👏","🫁","🧠","💚","💙","🩵","🩶","🖤",
     // 목표·기록
     "🎯","🏅","🥇","🥈","🏆","📍","⏱️","📈","🗓️","✅",
-    // 기타 에너지
-    "🚀","🌙","⭐","💫","✨","🎶","🎧","🧘","🤜","💥",
+    "📝","📊","🗒️","🔖","📌","🏁","🚩","🎌","⚑","🔔",
+    // 음식·보충
+    "🍌","🍊","🍋","🍎","🫐","🍇","🥝","🍉","🥤","💦",
+    "🧃","🍵","☕","🥜","🍫","🥯","🍞","🥗","🍱","🧇",
+    // 기타 에너지·재미
+    "🚀","⭐","💫","✨","🎶","🎧","🧘","🤜","💥","🎵",
+    "🎤","🎸","🥁","🎊","🎉","🪄","🎮","🕹️","🃏","🎲",
   ];
 
   let currentEmoji = RUN_EMOJIS[0];
@@ -72,16 +84,52 @@
     return RUN_EMOJIS[Math.floor(Math.random() * RUN_EMOJIS.length)];
   }
 
-  function nextEmoji() {
-    const idx = RUN_EMOJIS.indexOf(currentEmoji);
-    const next = (idx + 1) % RUN_EMOJIS.length;
-    currentEmoji = RUN_EMOJIS[next];
+  // ── Emoji picker modal ──
+  const emojiPickerModal = document.getElementById("emoji-picker-modal");
+  const emojiPickerBackdrop = document.getElementById("emoji-picker-backdrop");
+  const emojiPickerGrid = document.getElementById("emoji-picker-grid");
+  const emojiPickerClose = document.getElementById("emoji-picker-close");
+
+  emojiPickerGrid.innerHTML = RUN_EMOJIS.map((e) =>
+    `<button type="button" class="emoji-picker__item" data-emoji="${e}">${e}</button>`
+  ).join("");
+
+  function openEmojiPicker() {
+    emojiPickerGrid.querySelectorAll(".emoji-picker__item").forEach((btn) => {
+      btn.classList.toggle("is-selected", btn.dataset.emoji === currentEmoji);
+    });
+    emojiPickerModal.hidden = false;
+    emojiPickerBackdrop.hidden = false;
+    requestAnimationFrame(() => {
+      emojiPickerModal.classList.add("is-open");
+      emojiPickerBackdrop.classList.add("is-open");
+    });
+    const selected = emojiPickerGrid.querySelector(".is-selected");
+    if (selected) selected.scrollIntoView({ block: "center" });
+  }
+
+  function closeEmojiPicker() {
+    emojiPickerModal.classList.remove("is-open");
+    emojiPickerBackdrop.classList.remove("is-open");
+    window.setTimeout(() => {
+      emojiPickerModal.hidden = true;
+      emojiPickerBackdrop.hidden = true;
+    }, 180);
+  }
+
+  emojiBtn.addEventListener("click", openEmojiPicker);
+  emojiPickerClose.addEventListener("click", closeEmojiPicker);
+  emojiPickerBackdrop.addEventListener("click", closeEmojiPicker);
+
+  emojiPickerGrid.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-emoji]");
+    if (!item) return;
+    currentEmoji = item.dataset.emoji;
     emojiBtn.textContent = currentEmoji;
     emojiBtn.classList.add("emoji-spin");
     emojiBtn.addEventListener("animationend", () => emojiBtn.classList.remove("emoji-spin"), { once: true });
-  }
-
-  emojiBtn.addEventListener("click", nextEmoji);
+    closeEmojiPicker();
+  });
 
   function loadRuns() {
     return runs;
@@ -578,7 +626,8 @@
     if (!title) return;
 
     if (editingId) {
-      updateRun(editingId, { emoji: currentEmoji, title, datetime, runner, partners, location, details });
+      const existing = loadRuns().find((r) => r.id === editingId);
+      updateRun(editingId, { emoji: currentEmoji, title, datetime, runner, partners, location, details, favorite: existing ? existing.favorite : false });
     } else {
       addRun({ emoji: currentEmoji, title, datetime, runner, partners, location, details });
     }
