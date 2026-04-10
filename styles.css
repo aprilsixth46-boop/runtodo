@@ -309,12 +309,12 @@ body {
 }
 
 .schedule-item__fav:hover {
-  color: #e05454;
+  color: var(--accent);
   transform: scale(1.2);
 }
 
 .schedule-item__fav.is-fav {
-  color: #e05454;
+  color: var(--accent);
 }
 
 .schedule-item__edit {
@@ -588,14 +588,14 @@ body {
 }
 
 .btn-fav:hover {
-  color: #e05454;
-  border-color: rgba(224, 84, 84, 0.4);
+  color: var(--accent);
+  border-color: var(--accent);
   transform: scale(1.1);
 }
 
 .btn-fav.is-fav {
-  color: #e05454;
-  border-color: rgba(224, 84, 84, 0.4);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .detail-modal__footer .btn {
@@ -620,6 +620,33 @@ body {
 .cal-run-chip:hover {
   background: rgba(24, 169, 106, 0.22);
   color: var(--accent-dim);
+}
+
+/* 과거 날짜 */
+.cal-cell--past {
+  background: #e8e8e8;
+  color: #999;
+}
+
+.cal-cell--past .cal-cell__num {
+  color: #999;
+}
+
+.cal-run-chip--past {
+  color: #888;
+  filter: grayscale(1);
+  opacity: 0.8;
+}
+
+.schedule-item.is-past {
+  opacity: 0.5;
+}
+
+.schedule-item.is-past .schedule-item__title,
+.schedule-item.is-past .schedule-item__when,
+.schedule-item.is-past .schedule-item__meta,
+.schedule-item.is-past .schedule-item__location {
+  color: var(--text-muted);
 }
 
 body.modal-open {

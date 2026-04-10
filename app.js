@@ -43,8 +43,7 @@
   let currentEmoji = RUN_EMOJIS[0];
   let editingId = null;
   let currentView = "list"; // "list" | "calendar"
-  let sortOrder = "newest"; // "newest" | "oldest"
-  let filterMode = "all"; // "all" | "favorite"
+  let filterMode = "upcoming"; // "upcoming" | "favorite" | "past"
   let calYear = new Date().getFullYear();
   let calMonth = new Date().getMonth(); // 0-based
 
@@ -67,8 +66,7 @@
   const btnCalendarView = document.getElementById("btn-calendar-view");
   const calPrev = document.getElementById("cal-prev");
   const calNext = document.getElementById("cal-next");
-  const btnSortNewest = document.getElementById("btn-sort-newest");
-  const btnSortOldest = document.getElementById("btn-sort-oldest");
+  const btnFilterUpcoming = document.getElementById("btn-filter-upcoming");
 
   const detailModal = document.getElementById("detail-modal");
   const detailBackdrop = document.getElementById("detail-backdrop");
@@ -216,12 +214,18 @@
     }).format(date);
   }
 
-  function sortRuns(runs, order) {
-    const dir = (order || sortOrder) === "oldest" ? 1 : -1;
+  // 오늘 날짜 기준(시간 제외) 과거 여부
+  function isPast(isoDatetime) {
+    if (!isoDatetime) return false;
+    return datePart(isoDatetime) < todayKey();
+  }
+
+  function sortRuns(runs, dir) {
+    const d = dir || 1;
     return [...runs].sort((a, b) => {
       const da = a.datetime || "";
       const db = b.datetime || "";
-      return da.localeCompare(db) * dir;
+      return da.localeCompare(db) * d;
     });
   }
 
@@ -241,6 +245,8 @@
       <article class="today-card" data-id="${escapeAttr(r.id)}" role="button" tabindex="0" style="cursor:pointer;">
         <h3 class="today-card__title"><span class="run-emoji" aria-hidden="true">${escapeHtml(r.emoji || "🏃")}</span>${escapeHtml(r.title)}</h3>
         <p class="today-card__meta"><strong>시간</strong> ${escapeHtml(formatDisplayDateTime(r.datetime))}</p>
+        ${r.runner ? `<p class="today-card__meta"><strong>러너</strong> ${escapeHtml(r.runner)}</p>` : ""}
+        ${r.partners ? `<p class="today-card__meta"><strong>함께</strong> ${escapeHtml(r.partners)}</p>` : ""}
         <p class="today-card__meta"><strong>장소</strong> ${escapeHtml(r.location || "")}</p>
         ${r.details ? `<p class="today-card__details">${escapeHtml(r.details)}</p>` : ""}
       </article>
@@ -250,25 +256,36 @@
   }
 
   function renderList(runs) {
-    let filtered = sortRuns(runs);
-    if (filterMode === "favorite") filtered = filtered.filter((r) => r.favorite);
+    let filtered;
+    const emptyMsg = {
+      upcoming: '<li class="list-empty">다가오는 러닝 일정이 없습니다.</li>',
+      favorite: '<li class="list-empty">즐겨찾기한 일정이 없습니다.</li>',
+      past:     '<li class="list-empty">지난 러닝 일정이 없습니다.</li>',
+    };
+
+    if (filterMode === "upcoming") {
+      filtered = sortRuns(runs.filter((r) => datePart(r.datetime) > todayKey()), 1); // 오늘 제외, 오름차순
+    } else if (filterMode === "past") {
+      filtered = sortRuns(runs.filter((r) => isPast(r.datetime)), -1); // 내림차순(최근과거부터)
+    } else {
+      filtered = sortRuns(runs.filter((r) => r.favorite), 1);
+    }
+
     if (filtered.length === 0) {
-      scheduleListEl.innerHTML =
-        filterMode === "favorite"
-          ? '<li class="list-empty">즐겨찾기한 일정이 없습니다.</li>'
-          : '<li class="list-empty">등록된 러닝 일정이 없습니다.</li>';
+      scheduleListEl.innerHTML = emptyMsg[filterMode];
       return;
     }
 
     scheduleListEl.innerHTML = filtered
-      .map(
-        (r) => `
-      <li class="schedule-item" data-id="${escapeAttr(r.id)}">
+      .map((r) => {
+        const past = isPast(r.datetime);
+        return `
+      <li class="schedule-item${past ? " is-past" : ""}" data-id="${escapeAttr(r.id)}">
         <div class="schedule-item__main">
           <h3 class="schedule-item__title"><span class="run-emoji" aria-hidden="true">${escapeHtml(r.emoji || "🏃")}</span>${escapeHtml(r.title)}</h3>
           <p class="schedule-item__when">${escapeHtml(formatDisplayDateTime(r.datetime))}</p>
           ${r.runner ? `<p class="schedule-item__meta">🏃 ${escapeHtml(r.runner)}</p>` : ""}
-          ${r.partners ? `<p class="schedule-item__meta">👥 ${escapeHtml(r.partners)}</p>` : ""}
+          ${r.partners ? `<p class="schedule-item__meta">🏃‍♀️ ${escapeHtml(r.partners)}</p>` : ""}
           <p class="schedule-item__location">📍 ${escapeHtml(r.location || "")}</p>
           ${r.details ? `<p class="schedule-item__details">${escapeHtml(r.details)}</p>` : ""}
         </div>
@@ -277,9 +294,8 @@
           <button type="button" class="schedule-item__edit" data-edit="${escapeAttr(r.id)}">수정</button>
           <button type="button" class="schedule-item__delete" data-delete="${escapeAttr(r.id)}">삭제</button>
         </div>
-      </li>
-    `
-      )
+      </li>`;
+      })
       .join("");
   }
 
@@ -318,22 +334,20 @@
   btnCalendarView.addEventListener("click", () => switchView("calendar"));
 
   const btnFilterFav = document.getElementById("btn-filter-fav");
+  const btnFilterPast = document.getElementById("btn-filter-past");
 
   function setFilter(mode) {
-    sortOrder = mode === "newest" || mode === "oldest" ? mode : sortOrder;
-    filterMode = mode === "favorite" ? "favorite" : "all";
-
-    btnSortNewest.classList.toggle("is-active", mode === "newest");
-    btnSortOldest.classList.toggle("is-active", mode === "oldest");
+    filterMode = mode;
+    btnFilterUpcoming.classList.toggle("is-active", mode === "upcoming");
     btnFilterFav.classList.toggle("is-active", mode === "favorite");
     btnFilterFav.textContent = mode === "favorite" ? "♥ Favorite" : "♡ Favorite";
-
+    btnFilterPast.classList.toggle("is-active", mode === "past");
     renderList(loadRuns());
   }
 
-  btnSortNewest.addEventListener("click", () => setFilter("newest"));
-  btnSortOldest.addEventListener("click", () => setFilter("oldest"));
+  btnFilterUpcoming.addEventListener("click", () => setFilter("upcoming"));
   btnFilterFav.addEventListener("click", () => setFilter("favorite"));
+  btnFilterPast.addEventListener("click", () => setFilter("past"));
 
   calPrev.addEventListener("click", () => {
     calMonth -= 1;
@@ -392,12 +406,13 @@
 
       let cls = "cal-cell";
       if (isToday) cls += " cal-cell--today";
+      else if (key < today) cls += " cal-cell--past";
       if (isSun) cls += " cal-cell--sun";
       if (isSat) cls += " cal-cell--sat";
 
       const runsOnDay = byDate[key] || [];
       const runItems = runsOnDay
-        .map((r) => `<span class="cal-run-chip" data-run-id="${escapeAttr(r.id)}" role="button" tabindex="0">${escapeHtml(r.emoji || "🏃")} ${escapeHtml(r.title)}</span>`)
+        .map((r) => `<span class="cal-run-chip${key < today ? " cal-run-chip--past" : ""}" data-run-id="${escapeAttr(r.id)}" role="button" tabindex="0">${escapeHtml(r.emoji || "🏃")} ${escapeHtml(r.title)}</span>`)
         .join("");
 
       html += `<div class="${cls}" data-cal-date="${key}" role="button" tabindex="0"><span class="cal-cell__num">${d}</span>${runItems}</div>`;
@@ -653,16 +668,13 @@
     }
   });
 
-  // Firestore 실시간 리스너 — orderBy 없이 JS에서 정렬 (인덱스 불필요)
-  db.collection(COLLECTION)
-    .onSnapshot(
-      (snapshot) => {
-        runs = snapshot.docs.map((doc) => fromFirestore(doc.id, doc.data()));
-        render();
-      },
-      (err) => {
-        console.error("Firestore 연결 오류:", err);
-        render(); // Firebase 실패해도 UI는 동작하도록
-      }
-    );
+  db.collection(COLLECTION).onSnapshot(
+    (snapshot) => {
+      runs = snapshot.docs.map((doc) => fromFirestore(doc.id, doc.data()));
+      render();
+    },
+    (err) => {
+      console.error("Firestore 연결 오류:", err);
+    }
+  );
 })();
